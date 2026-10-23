@@ -1,0 +1,66 @@
+# omniASR CTC-300M (sota-base, 24 layers, dim 1024)
+# Stage 2: structured pruning of the fine-tuned 300M to 80% sparsity (DPHuBERT / DiariZen recipe).
+#   student = teacher = `init` (the Stage 1 model)
+#   loss    = mean over distill_layers of (L1 - cosine) to the frozen teacher
+#           + lambda1 (s - t) + lambda2 (s - t)^2,   s = expected sparsity, t ramps 0 -> 0.8
+# Gates on attention heads and FFN intermediate units. Conv channels are left out:
+# the extractor normalises over channels (LayerNorm mode), so pruning them is not exact,
+# and the conv stack is a small share of the parameters (docs/DESIGN.md).
+stage: prune
+run_dir: runs/base/stage2_prune_s80
+init: runs/base/stage1_finetune/teacher.pt
+teacher: runs/base/stage1_finetune/teacher.pt
+seed: 1234
+
+model:
+  pruning_units: head,interm
+  precision: amp              # the 300M fits on the GPU in fp32 + autocast (the 1B needed offload)
+  gradient_checkpointing: true
+  freeze_feature_extractor: true   # conv channels are not pruned; frozen = no conv activations kept for backward
+  layerdrop: 0.0
+  ffn_dropout: 0.0
+
+optim:
+  max_steps: 12000
+  grad_accum: 1
+  lr: 2.0e-4                  # DiariZen distill_lr
+  gate_lr: 2.0e-2             # DiariZen reg_lr (log_alpha and the multipliers)
+  weight_decay: 0.0
+  warmup_steps: 500
+  decay_frac: 0.0
+  max_grad_norm: 10.0
+
+prune:
+  target_sparsity: 0.8
+  sparsity_warmup_frac: 0.25  # 3000 steps of linear ramp, then held
+  distill_layers: [0, 6, 12, 18, 24]    # every 6th of 24 (the 1B: every 12th of 48); 24 = after the final LayerNorm
+  l1_weight: 1.0
+  cos_weight: 1.0
+  ctc_weight: 0.0
+  mask_snapshots: false       # no masks/step_*.pt; gates live in latest.pt
+
+data:
+  fleurs_km_units: data/fleurs_km_units.json
+  fleurs_en_train: data/fleurs_en_train.jsonl
+  fleurs_fraction: 0.2        # FLEURS = 20% of each language's audio (repeated); 1-2% at natural share
+                              # let FLEURS-km dev CER climb 10.7 -> 13.1% in the first 1k steps of stage 1
+  en_fraction: 0.5
+  max_batch_seconds: 160
+  max_batch_size: 32
+  num_workers: 6
+
+eval:
+  every_steps: 500
+  sets:
+    ddd_dev: {manifest: data/ddd_dev.jsonl, limit: 400}
+    libri_dev: {manifest: data/libri_dev-clean.jsonl, limit: 400}
+    fleurs_km_dev: {manifest: data/fleurs_km_dev.jsonl, limit: 326}
+    fleurs_en_dev: {manifest: data/fleurs_en_dev.jsonl, limit: 400}
+  select: [ddd_dev.cer, libri_dev.wer, fleurs_km_dev.cer, fleurs_en_dev.wer]
+  select_after_step: 3000     # only once the sparsity target is reached
+
+save:
+  every_steps: 250
+  every_minutes: 45
+  best: false                 # keep only latest.pt (one checkpoint per run)
+  moments_dtype: bf16         # latest.pt ~8 GB instead of ~12 GB (data disk is nearly full)

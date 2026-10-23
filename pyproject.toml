@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "netra-sota"
+version = "0.1.0"
+description = "Compact Khmer and English speech recognition: Omnilingual ASR CTC models structurally pruned to 80% sparsity."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Nhem Darayut", email = "darayutnhem009@gmail.com" }]
+keywords = ["speech-recognition", "asr", "khmer", "english", "ctc", "pruning", "omnilingual-asr"]
+dependencies = [
+    "torch>=2.1",
+    "numpy",
+    "soundfile",
+    "soxr",
+    "safetensors",
+    "huggingface_hub",
+]
+
+[project.optional-dependencies]
+# training/ (see training/README.md); fairseq2 + omnilingual-asr only read the stock checkpoints
+train = [
+    "pyyaml",
+    "pyarrow",
+    "editdistance",
+    "datasets",
+    "fairseq2==0.8.1",
+    "omnilingual-asr==0.1.0",
+]
+dev = ["pytest"]
+
+[project.scripts]
+sota = "sota.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/netra-ai-lab/SOTA"
+Models = "https://huggingface.co/Darayut/sota-base"
+
+[tool.setuptools.packages.find]
+include = ["sota*"]
+
+[tool.setuptools.package-data]
+sota = ["vocab.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "training/tests"]
+pythonpath = [".", "training"]
+addopts = "-q"

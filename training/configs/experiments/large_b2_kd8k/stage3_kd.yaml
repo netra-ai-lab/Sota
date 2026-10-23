@@ -1,0 +1,54 @@
+# Experiment B2 (ablation): Stage 3 of the large chain with CTC + logit KD, 8k steps
+# (configs/large/stage3_recover.yaml is the same at 16k steps).
+# Stage 3: recovery of the pruned model with CTC + logit distillation from the Stage 1 teacher
+# (kd.weight * frame-level KL to the teacher's output distribution), 16k steps. The KD term
+# keeps the English the teacher knows from drifting while CTC adapts the small model.
+stage: finetune
+run_dir: runs/experiments/large_b2_kd8k
+init: runs/large/stage2b_distill/latest.pt
+teacher: runs/large/stage1_finetune/teacher.pt
+seed: 1234
+
+kd:
+  weight: 1.0
+  temperature: 1.0
+
+model:
+  precision: amp
+  gradient_checkpointing: true
+  freeze_feature_extractor: true
+  layerdrop: 0.05
+  ffn_dropout: 0.1
+
+optim:
+  max_steps: 8000
+  lr: 5.0e-5
+  head_lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_steps: 500
+  decay_frac: 0.5
+  final_lr_scale: 0.05
+  max_grad_norm: 5.0
+
+data:
+  fleurs_km_units: data/fleurs_km_units.json
+  fleurs_en_train: data/fleurs_en_train.jsonl
+  fleurs_fraction: 0.2        # FLEURS = 20% of each language's audio (repeated); 1-2% at natural share
+                              # let FLEURS-km dev CER climb 10.7 -> 13.1% in the first 1k steps of stage 1
+  en_fraction: 0.5
+  max_batch_seconds: 160
+  num_workers: 6
+
+eval:
+  every_steps: 500
+  sets:
+    ddd_dev: {manifest: data/ddd_dev.jsonl, limit: 400}
+    libri_dev: {manifest: data/libri_dev-clean.jsonl, limit: 400}
+    fleurs_km_dev: {manifest: data/fleurs_km_dev.jsonl, limit: 326}
+    fleurs_en_dev: {manifest: data/fleurs_en_dev.jsonl, limit: 400}
+  select: [ddd_dev.cer, libri_dev.wer, fleurs_km_dev.cer, fleurs_en_dev.wer]
+
+save:
+  every_steps: 500
+  every_minutes: 30
+  best: false                 # keep only latest.pt (one checkpoint per run)

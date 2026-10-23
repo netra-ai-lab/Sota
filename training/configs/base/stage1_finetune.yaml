@@ -1,0 +1,52 @@
+# omniASR CTC-300M (sota-base, 24 layers, dim 1024)
+# Stage 1: CTC fine-tune of the full 300M on DDD + FLEURS-km / LibriSpeech + FLEURS-en.
+# The result (teacher.pt) is both the starting point and the teacher of the pruning
+# (fine-tune before structured pruning, arXiv 2505.24111).
+stage: finetune
+run_dir: runs/base/stage1_finetune
+init: ${SOTA_MODELS_DIR}/omniASR-CTC-300M/omniASR-CTC-300M.sota.pt
+seed: 1234
+
+model:
+  precision: amp              # the 300M fits on the GPU in fp32 + autocast (the 1B needed offload)
+  gradient_checkpointing: true
+  freeze_feature_extractor: true
+  layerdrop: 0.05
+  ffn_dropout: 0.1
+
+optim:
+  max_steps: 6000
+  grad_accum: 1
+  lr: 1.0e-5                  # encoder
+  head_lr: 1.0e-4
+  weight_decay: 0.01
+  warmup_steps: 500
+  decay_frac: 0.5
+  final_lr_scale: 0.05
+  max_grad_norm: 5.0
+
+data:
+  fleurs_km_units: data/fleurs_km_units.json
+  fleurs_en_train: data/fleurs_en_train.jsonl
+  fleurs_fraction: 0.2        # FLEURS = 20% of each language's audio (repeated); 1-2% at natural share
+                              # let FLEURS-km dev CER climb 10.7 -> 13.1% in the first 1k steps of stage 1
+  en_fraction: 0.5
+  max_batch_seconds: 160
+  max_batch_size: 32
+  num_workers: 6
+
+eval:
+  every_steps: 500
+  at_start: true
+  sets:
+    ddd_dev: {manifest: data/ddd_dev.jsonl, limit: 400}
+    libri_dev: {manifest: data/libri_dev-clean.jsonl, limit: 400}
+    fleurs_km_dev: {manifest: data/fleurs_km_dev.jsonl, limit: 326}
+    fleurs_en_dev: {manifest: data/fleurs_en_dev.jsonl, limit: 400}
+  select: [ddd_dev.cer, libri_dev.wer, fleurs_km_dev.cer, fleurs_en_dev.wer]
+
+save:
+  every_steps: 250
+  every_minutes: 45
+  best: false                 # keep only latest.pt (one checkpoint per run)
+  moments_dtype: bf16

@@ -1,0 +1,14 @@
+__pycache__/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv
+*.pt
+# training outputs and local data (see training/local.env.example)
+training/runs/
+training/data/
+training/cache/
+training/pretrained/
+training/corpora/
+training/local.env

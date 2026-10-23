@@ -1,0 +1,38 @@
+# Experiment A (ablation): prune the *stock* 1B without a Stage 1 fine-tune, DDD + LibriSpeech only.
+# Superseded by configs/large (fine-tune first); kept to reproduce docs/RESULTS.md.
+# Stage 3: CTC recovery fine-tune of the pruned model.
+stage: finetune
+run_dir: runs/experiments/a_prune_from_stock/stage3_finetune
+init: runs/experiments/a_prune_from_stock/stage2b_distill/latest.pt
+seed: 1234
+
+model:
+  precision: amp
+  gradient_checkpointing: true
+  freeze_feature_extractor: true
+  layerdrop: 0.05
+  ffn_dropout: 0.1
+
+optim:
+  max_steps: 8000
+  lr: 5.0e-5
+  head_lr: 5.0e-5
+  weight_decay: 0.01
+  warmup_steps: 500
+  decay_frac: 0.5
+  final_lr_scale: 0.05
+  max_grad_norm: 5.0
+
+data:
+  en_fraction: 0.5
+  max_batch_seconds: 160
+  num_workers: 6
+
+eval:
+  every_steps: 500
+  select: [ddd_dev.cer, libri_dev.wer]
+
+save:
+  every_steps: 500
+  every_minutes: 30
+  best: false                 # keep only latest.pt (one checkpoint per run)

@@ -1,0 +1,43 @@
+# Experiment A (ablation): prune the *stock* 1B without a Stage 1 fine-tune, DDD + LibriSpeech only.
+# Superseded by configs/large (fine-tune first); kept to reproduce docs/RESULTS.md.
+# Stage 2b: distillation continues on the physically pruned student (scripts/04_apply_pruning.py)
+# with the mask frozen (DiariZen's "continue with frozen mask").
+stage: distill
+run_dir: runs/experiments/a_prune_from_stock/stage2b_distill
+init: runs/experiments/a_prune_from_stock/stage2_prune_s80/pruned.pt
+teacher: ${SOTA_MODELS_DIR}/omniASR-CTC-1B/omniASR-CTC-1B.sota.pt
+seed: 1234
+
+model:
+  precision: amp
+  gradient_checkpointing: true
+  freeze_feature_extractor: true   # conv channels are not pruned; frozen = no conv activations kept for backward
+  layerdrop: 0.0
+  ffn_dropout: 0.0
+
+optim:
+  max_steps: 5000
+  lr: 1.0e-4
+  weight_decay: 0.0
+  warmup_steps: 200
+  decay_frac: 0.3
+  max_grad_norm: 10.0
+
+prune:
+  distill_layers: [0, 12, 24, 36, 48]
+  l1_weight: 1.0
+  cos_weight: 1.0
+
+data:
+  en_fraction: 0.5
+  max_batch_seconds: 160
+  num_workers: 6
+
+eval:
+  every_steps: 500
+  select: [ddd_dev.cer, libri_dev.wer]
+
+save:
+  every_steps: 500
+  every_minutes: 30
+  best: false                 # keep only latest.pt (one checkpoint per run)
