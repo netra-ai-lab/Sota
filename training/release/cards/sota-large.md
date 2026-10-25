@@ -20,17 +20,19 @@ Meta's Omnilingual ASR `omniASR_CTC_1B` to **80% encoder sparsity**. It is the L
 named after DiariZen's Base-s80 / Large-s80 pruned WavLM models. The other size is
 [Darayut/sota-base](https://huggingface.co/Darayut/sota-base).
 
+**Code:** [github.com/netra-ai-lab/Sota](https://github.com/netra-ai-lab/Sota), with the `sota` inference package and the full training recipe.
+
 ## Results
 
 Test sets; greedy CTC decoding, no language model. CER for Khmer, WER for English, in %. Lower is better.
 
-| Model | Params | GMAC / s audio | DDD-Test (km) | FLEURS-km | FLEURS-en | LibriSpeech test-clean | LibriSpeech test-other |
+| Model | Params | GMAC / s audio | DDD (km) | FLEURS-km | FLEURS-en | LibriSpeech test-clean | LibriSpeech test-other |
 |---|---|---|---|---|---|---|---|
 | `omniASR_CTC_1B` (stock) | 975M | 50.3 | 5.95 | 11.26 | 12.38 | 4.40 | 8.87 |
 | [omniASR-CTC-1B-km-en](https://huggingface.co/Darayut/omniASR-CTC-1B-km-en) (fine-tuned teacher) | 975M | 50.3 | 2.47 | 9.44 | 11.94 | 3.61 | 8.21 |
 | **sota-large** | **204M** | **12.3** | **1.77** | **11.40** | **19.25** | **6.07** | **16.73** |
 
-- **Khmer:** on DDD-Test it is more accurate than both its unpruned fine-tuned teacher and the stock model.
+- **Khmer:** on DDD it is more accurate than both its unpruned fine-tuned teacher and the stock model.
 - **English:** it keeps much less of its teacher's accuracy, with about 1.5–2× the teacher's WER.
 - **In-domain test sets:** FLEURS-km and FLEURS-en train are in the training mix, so their test sets are in-domain.
 
@@ -39,7 +41,7 @@ Test sets; greedy CTC decoding, no language model. CER for Khmer, WER for Englis
 - **Base:** a wav2vec2-style CTC encoder with Omnilingual's 9,812-entry character vocabulary, which covers Khmer and Latin script.
 - **Pruned parts:** per-layer attention heads and FFN units, so every layer has its own width. `config.json` lists the exact `num_heads` and `ffn_dims`; the encoder has 191M parameters.
 - **Unchanged parts:** the CNN feature extractor and the output layer.
-- **Loading:** the layer widths are non-uniform, so fairseq2 / `omnilingual-asr` cannot load it. Use the bundled `omniprune` code.
+- **Loading:** the layer widths are non-uniform, so fairseq2 / `omnilingual-asr` cannot load it. Use the `sota` package (see Usage) or the code bundled in this repo.
 
 ## How it was made
 

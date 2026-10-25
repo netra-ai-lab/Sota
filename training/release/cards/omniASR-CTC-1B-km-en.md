@@ -21,11 +21,13 @@ This is the Stage 1 model of a structured-pruning study (fine-tune first, then p
 sparsity with distillation, following *Fine-tune Before Structured Pruning*, arXiv 2505.24111).
 It serves as the teacher and starting point for the pruned models.
 
+**Code:** [github.com/netra-ai-lab/Sota](https://github.com/netra-ai-lab/Sota).
+
 ## Results
 
 Greedy CTC decoding, no language model. CER for Khmer, WER for English, in %. Lower is better.
 
-| Model | DDD-Test (km) | FLEURS-km test | FLEURS-en test | LibriSpeech test-clean | LibriSpeech test-other |
+| Model | DDD (km) | FLEURS-km test | FLEURS-en test | LibriSpeech test-clean | LibriSpeech test-other |
 |---|---|---|---|---|---|
 | `omniASR_CTC_1B` (stock) | 5.95 | 11.26 | 12.38 | 4.40 | 8.87 |
 | **this model** | **2.47** | **9.44** | **11.94** | **3.61** | **8.21** |
@@ -57,6 +59,19 @@ FLEURS-km and FLEURS-en train splits are in the training mix, so their test sets
 
 The fairseq2 checkpoint was verified by reloading it with fairseq2 and comparing logits
 against the training model: the maximum difference was exactly zero.
+
+## Usage (sota)
+
+```bash
+pip install git+https://github.com/netra-ai-lab/SOTA
+```
+
+```python
+import sota
+
+asr = sota.load_model("teacher-1b")      # downloads this repo's weights once
+print(asr.transcribe("audio.wav"))
+```
 
 ## Usage (omnilingual-asr)
 
