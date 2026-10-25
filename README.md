@@ -46,8 +46,6 @@ This repository presents SOTA, a pair of **73M- and 204M-parameter** CTC speech 
 
 On the DDD test set, the 204M model reaches **1.77% CER**, against 2.47% for its 975M teacher, at a quarter of the compute (12.3 against 50.3 GMAC per second of audio). The 73M model reaches **2.60% CER**, below its 325M teacher's 3.68%, at 5.8 GMAC/s.
 
-These models are the ASR half of a planned joint ASR + speaker-diarization model, sized like DiariZen's pruned Base-s80 and Large-s80.
-
 ## 2. Dataset
 
 SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer and English by audio seconds. FLEURS is fixed at 20% of each language's audio and repeated as needed.
