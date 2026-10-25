@@ -239,14 +239,3 @@ This project is released under the Apache License 2.0 (see [LICENSE](LICENSE)).
    *Vassil Panayotov, Guoguo Chen, Daniel Povey, Sanjeev Khudanpur*  
    ICASSP 2015.  
    [OpenSLR 12](https://www.openslr.org/12)
-
-## Citation
-
-```bibtex
-@misc{nhem2026sota,
-  title        = {SOTA: Structured Pruning of Omnilingual ASR for Khmer and English},
-  author       = {Nhem, Darayut},
-  year         = {2026},
-  howpublished = {\url{https://github.com/netra-ai-lab/SOTA}}
-}
-```
