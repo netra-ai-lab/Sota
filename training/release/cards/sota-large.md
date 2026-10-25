@@ -36,7 +36,15 @@ Test sets; greedy CTC decoding, no language model. CER for Khmer, WER for Englis
 - **English:** it keeps much less of its teacher's accuracy, with about 1.5–2× the teacher's WER.
 - **In-domain test sets:** FLEURS-km and FLEURS-en train are in the training mix, so their test sets are in-domain.
 
+<p align="center"><img src="https://huggingface.co/Darayut/sota-large/resolve/main/assets/tradeoff.png" width="100%" alt="Error rate against speed-up for each fine-tuned teacher and its 80%-sparse model"></p>
+
+*Speed against error.* Each arrow runs from a fine-tuned teacher to its pruned model; speed is relative to the fine-tuned 1B (real-time factor).
+
 ## Architecture
+
+<p align="center"><img src="https://huggingface.co/Darayut/sota-large/resolve/main/assets/pruning.png" width="100%" alt="The encoder before and after pruning: CNN kept, attention heads and FFN units removed"></p>
+
+*What is pruned*, shown for sota-large: whole attention heads (MHA) and FFN units are removed from every transformer layer, and the CNN front end is kept. Each cell is a quarter of a layer's heads or units.
 
 - **Base:** a wav2vec2-style CTC encoder with Omnilingual's 9,812-entry character vocabulary, which covers Khmer and Latin script.
 - **Pruned parts:** per-layer attention heads and FFN units, so every layer has its own width. `config.json` lists the exact `num_heads` and `ffn_dims`; the encoder has 191M parameters.
