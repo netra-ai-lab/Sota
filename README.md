@@ -92,7 +92,7 @@ SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer a
   <img src="assets/tradeoff.png" width="1000" alt="Error rate against speed-up for each fine-tuned teacher and its 80%-sparse SOTA model on DDD, FLEURS-km and LibriSpeech" />
 </p>
 
-<p><em>Figure 2: What 80% encoder sparsity buys and costs. Each arrow runs from a fine-tuned teacher to its pruned model; speed is relative to the fine-tuned 1B, measured as real-time factor on one machine. Pruning makes the models 4–5× smaller and 1.8–2.5× faster than their teachers. On DDD both pruned models are also more accurate; on FLEURS-km and LibriSpeech they lose accuracy. sota-large is about as fast as the fine-tuned 300M, and more accurate on both Khmer sets.</em></p>
+<p><em>Figure 2: What 80% encoder sparsity buys and costs. Each arrow runs from a fine-tuned teacher to its pruned model (solid: large, dashed: base); marker area is the parameter count, and each SOTA label gives its error and the change against its teacher. Speed is relative to the fine-tuned 1B, measured as real-time factor on one machine. Pruning makes the models 4–5× smaller and 1.8–2.5× faster than their teachers. On DDD both pruned models are also more accurate; on FLEURS-km and LibriSpeech they lose accuracy. sota-large is about as fast as the fine-tuned 300M, and more accurate on both Khmer sets.</em></p>
 
 | Feature | Detail |
 | :--- | :--- |

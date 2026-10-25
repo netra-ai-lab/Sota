@@ -38,7 +38,7 @@ Test sets; greedy CTC decoding, no language model. CER for Khmer, WER for Englis
 
 <p align="center"><img src="https://huggingface.co/Darayut/sota-base/resolve/main/assets/tradeoff.png" width="100%" alt="Error rate against speed-up for each fine-tuned teacher and its 80%-sparse model"></p>
 
-*Speed against error.* Each arrow runs from a fine-tuned teacher to its pruned model; speed is relative to the fine-tuned 1B (real-time factor).
+*Speed against error.* Each arrow runs from a fine-tuned teacher to its pruned model (solid: large, dashed: base). Marker area is the parameter count, and each label gives the error and its change against the teacher. Speed is relative to the fine-tuned 1B (real-time factor).
 
 ## Architecture
 
