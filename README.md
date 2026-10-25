@@ -7,8 +7,8 @@
 
 <p align="center">
   <a href="https://github.com/netra-ai-lab/SOTA"><b>GitHub</b></a> |
-  <a href="https://huggingface.co/Darayut/sota-base"><b>Model Download (base)</b></a> |
-  <a href="https://huggingface.co/Darayut/sota-large"><b>Model Download (large)</b></a> |
+  <a href="https://huggingface.co/Darayut/sota-base"><b>Sota-base</b></a> |
+  <a href="https://huggingface.co/Darayut/sota-large"><b>Sota-large</b></a> |
   <a href="https://huggingface.co/Darayut/omniASR-CTC-1B-km-en"><b>Fine-tuned 1B</b></a> |
   <a href="https://huggingface.co/Darayut/omniASR-CTC-300M-km-en"><b>Fine-tuned 300M</b></a>
 </p>
