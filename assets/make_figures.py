@@ -186,62 +186,43 @@ def pruning() -> None:
 
 
 def tradeoff() -> None:
-    """Figure 2: speed against error for each teacher and its 80%-sparse model; marker area is parameters."""
-    ink, meta = COLOR["foreground"], COLOR["muted-2"]
-    pairs = [("large_teacher", "large", "Fine-tuned 1B", "sota-large", "-"),
-             ("base_teacher", "base", "Fine-tuned 300M", "sota-base", (0, (4, 3)))]
-    ref = _mean_rtf("large_teacher")
-
-    def area(params):
-        return params / 1e6 * 0.75
-
-    def radius(params):  # points
-        return (area(params) / np.pi) ** 0.5
-
-    fig, axes = plt.subplots(1, 3, figsize=(14, 4.5))
-    for ax, (key, title) in zip(axes, TESTS):
-        metric = "wer" if key.startswith("libri") else "cer"
+    """Figure 2: size, speed and error of each 80%-sparse model next to its fine-tuned teacher."""
+    ink = COLOR["foreground"]
+    pairs = [("large_teacher", "large", "Large"), ("base_teacher", "base", "Base")]
+    panels = [("Size", "parameters (M), lower is smaller", lambda n: _eval(n)["params_total"] / 1e6, "{:.0f}"),
+              ("Speed", "× its teacher, higher is faster", None, "{:.1f}×"),
+              ("DDD", "Khmer CER (%), lower is better", lambda n: 100 * _eval(n)["results"]["ddd_test"]["cer"], "{:.2f}"),
+              ("FLEURS-km", "Khmer CER (%), lower is better", lambda n: 100 * _eval(n)["results"]["fleurs_km_test"]["cer"], "{:.2f}"),
+              ("LibriSpeech", "English WER (%), lower is better", lambda n: 100 * _eval(n)["results"]["libri_test_clean"]["wer"], "{:.2f}")]
+    fig, axes = plt.subplots(1, len(panels), figsize=(15, 3.9))
+    w = 0.36
+    for ax, (title, unit, get, fmt) in zip(axes, panels):
+        vals = [(1.0, _mean_rtf(t) / _mean_rtf(o)) if get is None else (get(t), get(o)) for t, o, _ in pairs]
+        top_all = max(max(v) for v in vals)
         top = 0
-        for t_name, o_name, t_label, o_label, ls in pairs:
-            t, o = _eval(t_name), _eval(o_name)
-            tx, ox = ref / _mean_rtf(t_name), ref / _mean_rtf(o_name)
-            ty, oy = (100 * e["results"][key][metric] for e in (t, o))
-            tn, on = t["params_total"], o["params_total"]
-            top = max(top, ty, oy)
-            ax.annotate("", (ox, oy), (tx, ty), zorder=2,
-                        arrowprops=dict(arrowstyle="-|>", color=meta, lw=1.3, ls=ls, mutation_scale=13,
-                                        shrinkA=radius(tn) + 2, shrinkB=radius(on) + 2))
-            ax.scatter([tx], [ty], s=area(tn), color=BASELINES[0], alpha=0.85, zorder=3, edgecolor="white", lw=1.2)
-            ax.scatter([ox], [oy], s=area(on), color=OURS, zorder=4, edgecolor="white", lw=1.2)
-            # the 1B below its point, the 300M to its left, SOTA models to the right with their change
-            if t_name == "large_teacher":
-                ax.annotate(f"{t_label}\n{ty:.2f}", (tx, ty), xytext=(0, -radius(tn) - 4), textcoords="offset points",
-                            ha="center", va="top", fontsize=9, color=ink)
+        for g, (t_name, o_name, group) in enumerate(pairs):
+            if get is None:  # speed from the measured real-time factor
+                tv, ov = 1.0, _mean_rtf(t_name) / _mean_rtf(o_name)
             else:
-                ax.annotate(f"{t_label}\n{ty:.2f}", (tx, ty), xytext=(-radius(tn) - 5, 0), textcoords="offset points",
-                            ha="right", va="center", fontsize=9, color=ink)
-            change = 100 * (oy / ty - 1)
-            ax.annotate(f"{o_label}\n{oy:.2f} ({change:+.0f}%)".replace("(-", "(−"), (ox, oy),
-                        xytext=(radius(on) + 5, 0), textcoords="offset points", ha="left", va="center", fontsize=9,
-                        color=ink, weight="bold")
-        ax.set_title(title.replace("\n", " "), loc="left", fontsize=12)
-        ax.set_xlim(-0.3, 6.0)
-        ax.set_xticks(range(1, 6), [f"{i}×" for i in range(1, 6)])
+                tv, ov = get(t_name), get(o_name)
+            top = max(top, tv, ov)
+            ax.bar(g - w / 2 - 0.02, tv, w, color=BASELINES[0], zorder=3)
+            ax.bar(g + w / 2 + 0.02, ov, w, **ours_bar())
+            ax.text(g - w / 2 - 0.02, tv + 0.015 * top_all, fmt.format(tv), ha="center", va="bottom", fontsize=9, color=ink)
+            change = "" if get is None else "\n" + f"{100 * (ov / tv - 1):+.0f}%".replace("-", "−")
+            ax.text(g + w / 2 + 0.02, ov + 0.015 * top_all, f"{fmt.format(ov)}{change}", ha="center", va="bottom", fontsize=9,
+                    color=ink, weight="bold", linespacing=1.15)
+        ax.set_xticks(range(len(pairs)), [p[2] for p in pairs], fontsize=10.5)
+        ax.set_xlim(-0.6, len(pairs) - 0.4)
         ax.set_ylim(0, top * 1.22)
-    axes[0].set_ylabel("Error rate (%), lower is better")
-    axes[1].set_xlabel("Speed-up over the fine-tuned 1B (real-time factor, higher is faster)", fontsize=11, labelpad=8)
-
-    def size_key(params, label):
-        return matplotlib.lines.Line2D([], [], marker="o", ls="None", markersize=2 * radius(params),
-                                       markerfacecolor="none", markeredgecolor=meta, label=label)
-
-    handles = [legend_dot(BASELINES[0], "fine-tuned teacher"), legend_dot(OURS, "SOTA, 80% encoder sparsity"),
-               matplotlib.lines.Line2D([], [], color=meta, lw=1.3, label="large pair"),
-               matplotlib.lines.Line2D([], [], color=meta, lw=1.3, ls=(0, (4, 3)), label="base pair"),
-               size_key(73e6, "73M"), size_key(325e6, "325M"), size_key(975e6, "975M parameters")]
-    fig.legend(handles=handles, loc="upper center", ncol=len(handles), fontsize=9.5, frameon=False,
-               bbox_to_anchor=(0.5, 1.03), handlelength=2.6, handletextpad=0.7, columnspacing=1.8, borderpad=0.8)
-    fig.tight_layout(rect=(0, 0, 1, 0.9))
+        ax.set_yticks([])
+        ax.spines["left"].set_visible(False)
+        ax.grid(False)
+        ax.set_title(f"{title}\n", loc="center", fontsize=12, weight="bold")
+        ax.text(0.5, 1.02, unit, transform=ax.transAxes, ha="center", va="bottom", fontsize=9.5, color=COLOR["muted"])
+    fig.legend(handles=[legend_dot(BASELINES[0], "fine-tuned teacher"), legend_dot(OURS, "SOTA, 80% encoder sparsity")],
+               loc="upper center", ncol=2, fontsize=10, frameon=False, bbox_to_anchor=(0.5, 1.01))
+    fig.tight_layout(rect=(0, 0, 1, 0.9), w_pad=2.5)
     fig.savefig(HERE / "tradeoff.png")
     plt.close(fig)
 
