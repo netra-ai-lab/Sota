@@ -63,7 +63,7 @@ DPHuBERT (arXiv 2305.17651) as used in DiariZen.
 5. **Recover** (16k steps). Train with CTC plus a frame-level KL divergence to the teacher's output distribution (temperature 1, weight 1).
 
 **Training mix**, 50/50 by language:
-- Khmer: DDD train and FLEURS-km train.
+- Khmer: [DDD](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset) train and FLEURS-km train.
 - English: LibriSpeech train-clean-100 + 360 and FLEURS-en train.
 - FLEURS is fixed at 20% of each language's audio.
 

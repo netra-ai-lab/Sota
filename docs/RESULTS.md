@@ -73,7 +73,7 @@ Dev sets:
 
 | Source | Language | Train size | Share of training audio |
 | :--- | :--- | :--- | :--- |
-| DDD | Khmer | 1,058 h, 4,423 parquet shards | 80% of Khmer |
+| [DDD](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset) | Khmer | 1,058 h, 4,423 parquet shards | 80% of Khmer |
 | FLEURS km_kh train | Khmer | 7.1 h, 1,675 clips | 20% of Khmer (repeated) |
 | LibriSpeech train-clean-100 + 360 | English | 464 h | 80% of English |
 | FLEURS en_us train | English | 7.5 h, 2,602 clips | 20% of English (repeated) |

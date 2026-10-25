@@ -45,7 +45,7 @@ All locations are environment variables. `training/local.env` (git-ignored) sets
 | `FLEURS_EN_DIR` | `training/corpora/fleurs-en` | FLEURS en_us wavs, written by step 2 |
 | `SOTA_CACHE` | `training/cache` | decoded eval audio and the generated fairseq2 asset cards |
 
-**The Khmer corpus can't be downloaded by the scripts.** `ASR_ROOT` must already hold:
+**The Khmer corpus is a manual download.** DDD is public at [Digital-Divide-Data/khmer-speech-dataset](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset) (CC BY-SA 4.0, 450,396 utterances), but the scripts don't fetch it. Training reads it through a shard index of our own (the DDD rows re-sharded into 4,423 parquet files), so `ASR_ROOT` must already hold:
 
 ```
 data/dataset/train.tsv                 DDD training index: shard_path, row_index, transcript, duration, speaker_id, source

@@ -40,7 +40,7 @@ FLEURS-km and FLEURS-en train splits are in the training mix, so their test sets
 ## Training
 
 - **Data**, mixed 50/50 by language:
-  - Khmer: DDD train and FLEURS-km train
+  - Khmer: [DDD](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset) train and FLEURS-km train
   - English: LibriSpeech train-clean-100 + train-clean-360 and FLEURS-en train
   - FLEURS is fixed at 20% of each language's audio
 - **Objective:** CTC

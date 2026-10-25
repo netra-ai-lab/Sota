@@ -10,7 +10,8 @@
   <a href="https://huggingface.co/Darayut/sota-base"><b>Sota-base</b></a> |
   <a href="https://huggingface.co/Darayut/sota-large"><b>Sota-large</b></a> |
   <a href="https://huggingface.co/Darayut/omniASR-CTC-1B-km-en"><b>Fine-tuned 1B</b></a> |
-  <a href="https://huggingface.co/Darayut/omniASR-CTC-300M-km-en"><b>Fine-tuned 300M</b></a>
+  <a href="https://huggingface.co/Darayut/omniASR-CTC-300M-km-en"><b>Fine-tuned 300M</b></a> |
+  <a href="https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset"><b>Khmer Dataset</b></a>
 </p>
 
 <p align="center">
@@ -54,7 +55,7 @@ SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer a
 
 | Dataset | Type | Size | Domains |
 | :--- | :--- | ---: | :--- |
-| DDD <!-- TODO: public link or description of the DDD corpus --> | Khmer speech | 1,058 h | General Khmer speech |
+| [DDD Khmer Speech](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset) | Khmer speech | 1,058 h | Cambodian culture, 61 topics, native speakers |
 | [FLEURS](https://huggingface.co/datasets/google/fleurs) km_kh train | Khmer read speech | 7.1 h | Wikipedia sentences |
 | [LibriSpeech](https://www.openslr.org/12) train-clean-100 + 360 | English read speech | 464 h | Audiobooks |
 | [FLEURS](https://huggingface.co/datasets/google/fleurs) en_us train | English read speech | 7.5 h | Wikipedia sentences |
@@ -192,14 +193,14 @@ training/run.sh base                               # or: training/run.sh large
 - **Greedy decoding only.** There is no language model or beam search.
 - **One pass per file.** Each file is decoded in a single pass, so split long recordings into utterances first. Training used clips of 1–25 s.
 - **Two languages only.** The models were trained and tested on Khmer and English only; other languages Omnilingual supports will have degraded.
-- **The Khmer corpus isn't public.** DDD can't be downloaded by the scripts, so `training/run.sh` needs it in place (see [docs/TRAINING.md](docs/TRAINING.md)).
+- **The Khmer corpus is a manual download.** [DDD](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset) is public, but `training/run.sh` doesn't fetch it, and it reads DDD through its own shard index (see [docs/TRAINING.md](docs/TRAINING.md)).
 
 ## 8. Licensing
 
 This project is released under the Apache License 2.0 (see [LICENSE](LICENSE)).
 - **Weights:** derived from Meta's Omnilingual ASR CTC models, released under Apache 2.0.
 - **`sota/hardconcrete.py`:** ported from DiariZen, which is MIT-licensed.
-- **Training data:** LibriSpeech is CC BY 4.0, and FLEURS is CC BY 4.0. <!-- TODO: licence of the DDD corpus -->
+- **Training data:** DDD is CC BY-SA 4.0 ([Digital Divide Data](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset)), LibriSpeech is CC BY 4.0, and FLEURS is CC BY 4.0.
 
 ## References
 
@@ -237,3 +238,8 @@ This project is released under the Apache License 2.0 (see [LICENSE](LICENSE)).
    *Vassil Panayotov, Guoguo Chen, Daniel Povey, Sanjeev Khudanpur*  
    ICASSP 2015.  
    [OpenSLR 12](https://www.openslr.org/12)
+
+8. **Khmer ASR Cultural Dataset**  
+   *Digital Divide Data*  
+   Hugging Face Datasets.  
+   [Digital-Divide-Data/khmer-speech-dataset](https://huggingface.co/datasets/Digital-Divide-Data/khmer-speech-dataset)
