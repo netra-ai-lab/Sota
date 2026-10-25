@@ -36,9 +36,9 @@ Test sets; greedy CTC decoding, no language model. CER for Khmer, WER for Englis
 - **English:** it keeps much less of its teacher's accuracy, with about 1.5–2× the teacher's WER.
 - **In-domain test sets:** FLEURS-km and FLEURS-en train are in the training mix, so their test sets are in-domain.
 
-<p align="center"><img src="https://huggingface.co/Darayut/sota-large/resolve/main/assets/tradeoff.png" width="100%" alt="Parameters, speed and test error of each 80%-sparse SOTA model next to its fine-tuned teacher"></p>
+<p align="center"><img src="https://huggingface.co/Darayut/sota-large/resolve/main/assets/inference_time.png" width="60%" alt="Inference time for 60 s of audio at 0% and 80% encoder sparsity, for the base and large models"></p>
 
-*What 80% sparsity buys and costs.* Each SOTA model (orange) next to its fine-tuned teacher (blue); percentages are the change against the teacher, and speed is the measured real-time factor relative to the teacher.
+*Inference time* for one 60 s utterance (batch 1, bf16, median of 20 runs), at 0% sparsity (the fine-tuned teacher) and 80% (SOTA).
 
 ## Architecture
 

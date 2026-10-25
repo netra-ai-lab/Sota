@@ -65,6 +65,7 @@ manifests/dev_fleurs.jsonl             FLEURS-km validation
 cd training && source scripts/env.sh
 scripts/run_stage.sh configs/base/stage2_prune_s80.yaml [--set optim.max_steps=50 ...]
 "$PY" scripts/03_evaluate.py runs/base/stage3_recover/latest.pt --name my_eval [--sets ddd_test libri_test_clean]
+"$PY" scripts/07_time_inference.py            # inference time of each teacher and SOTA model -> runs/eval/inference_time.json
 ```
 
 `scripts/env.sh` reads `local.env` and picks the interpreter: the repo's `.venv` if present, else `python3`. It also puts `training/` and the repo root on `PYTHONPATH`.

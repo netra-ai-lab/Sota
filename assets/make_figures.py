@@ -2,7 +2,7 @@
 
     python assets/make_figures.py      # reads training/runs/eval/*.json and */stage2_prune_s80/pruned.json
 
-Writes assets/pruning.png (the encoder before and after pruning), assets/tradeoff.png (speed against error),
+Writes assets/pruning.png (the encoder before and after pruning), assets/inference_time.png (inference time at 0% and 80% sparsity),
 assets/results.png (test error, two model sizes) and assets/layers.png (what pruning kept in each layer).
 """
 
@@ -185,45 +185,29 @@ def pruning() -> None:
     plt.close(fig)
 
 
-def tradeoff() -> None:
-    """Figure 2: size, speed and error of each 80%-sparse model next to its fine-tuned teacher."""
-    ink = COLOR["foreground"]
-    pairs = [("large_teacher", "large", "Large"), ("base_teacher", "base", "Base")]
-    panels = [("Size", "parameters (M), lower is smaller", lambda n: _eval(n)["params_total"] / 1e6, "{:.0f}"),
-              ("Speed", "× its teacher, higher is faster", None, "{:.1f}×"),
-              ("DDD", "Khmer CER (%), lower is better", lambda n: 100 * _eval(n)["results"]["ddd_test"]["cer"], "{:.2f}"),
-              ("FLEURS-km", "Khmer CER (%), lower is better", lambda n: 100 * _eval(n)["results"]["fleurs_km_test"]["cer"], "{:.2f}"),
-              ("LibriSpeech", "English WER (%), lower is better", lambda n: 100 * _eval(n)["results"]["libri_test_clean"]["wer"], "{:.2f}")]
-    fig, axes = plt.subplots(1, len(panels), figsize=(15, 3.9))
-    w = 0.36
-    for ax, (title, unit, get, fmt) in zip(axes, panels):
-        vals = [(1.0, _mean_rtf(t) / _mean_rtf(o)) if get is None else (get(t), get(o)) for t, o, _ in pairs]
-        top_all = max(max(v) for v in vals)
-        top = 0
-        for g, (t_name, o_name, group) in enumerate(pairs):
-            if get is None:  # speed from the measured real-time factor
-                tv, ov = 1.0, _mean_rtf(t_name) / _mean_rtf(o_name)
-            else:
-                tv, ov = get(t_name), get(o_name)
-            top = max(top, tv, ov)
-            ax.bar(g - w / 2 - 0.02, tv, w, color=BASELINES[0], zorder=3)
-            ax.bar(g + w / 2 + 0.02, ov, w, **ours_bar())
-            ax.text(g - w / 2 - 0.02, tv + 0.015 * top_all, fmt.format(tv), ha="center", va="bottom", fontsize=9, color=ink)
-            change = "" if get is None else "\n" + f"{100 * (ov / tv - 1):+.0f}%".replace("-", "−")
-            ax.text(g + w / 2 + 0.02, ov + 0.015 * top_all, f"{fmt.format(ov)}{change}", ha="center", va="bottom", fontsize=9,
-                    color=ink, weight="bold", linespacing=1.15)
-        ax.set_xticks(range(len(pairs)), [p[2] for p in pairs], fontsize=10.5)
-        ax.set_xlim(-0.6, len(pairs) - 0.4)
-        ax.set_ylim(0, top * 1.22)
-        ax.set_yticks([])
-        ax.spines["left"].set_visible(False)
-        ax.grid(False)
-        ax.set_title(f"{title}\n", loc="center", fontsize=12, weight="bold")
-        ax.text(0.5, 1.02, unit, transform=ax.transAxes, ha="center", va="bottom", fontsize=9.5, color=COLOR["muted"])
-    fig.legend(handles=[legend_dot(BASELINES[0], "fine-tuned teacher"), legend_dot(OURS, "SOTA, 80% encoder sparsity")],
-               loc="upper center", ncol=2, fontsize=10, frameon=False, bbox_to_anchor=(0.5, 1.01))
-    fig.tight_layout(rect=(0, 0, 1, 0.9), w_pad=2.5)
-    fig.savefig(HERE / "tradeoff.png")
+def inference_time() -> None:
+    """Figure 2: inference time at 0% and 80% encoder sparsity (training/scripts/07_time_inference.py)."""
+    t = json.loads((RUNS / "eval" / "inference_time.json").read_text())
+    m = t["models"]
+    groups = [("Base", "teacher-300m", "sota-base"), ("Large", "teacher-1b", "sota-large")]
+    fig, ax = plt.subplots(figsize=(7, 4.8))
+    w = 0.32
+    for g, (label, dense, sparse) in enumerate(groups):
+        d, s_ = m[dense]["ms"], m[sparse]["ms"]
+        ax.bar(g - w / 2 - 0.02, d, w, color=BASELINES[0], zorder=3)
+        ax.bar(g + w / 2 + 0.02, s_, w, **ours_bar())
+        ax.text(g - w / 2 - 0.02, d + 8, f"{d:.0f}", ha="center", va="bottom", fontsize=11, color=COLOR["foreground"])
+        ax.text(g + w / 2 + 0.02, s_ + 8, f"{s_:.0f}\n{d / s_:.1f}× faster", ha="center", va="bottom", fontsize=11,
+                color=COLOR["foreground"], weight="bold", linespacing=1.2)
+    ax.set_xticks(range(len(groups)),
+                  [f"{label}\n{m[d]['params'] / 1e6:.0f}M → {m[s]['params'] / 1e6:.0f}M" for label, d, s in groups],
+                  fontsize=11)
+    ax.set_xlim(-0.6, len(groups) - 0.4)
+    ax.set_ylim(0, max(v["ms"] for v in m.values()) * 1.2)
+    ax.set_ylabel(f"Inference time for {t['audio_seconds']:.0f} s of audio (ms)")
+    ax.legend(handles=[legend_dot(BASELINES[0], "sparsity = 0% (fine-tuned teacher)"),
+                       legend_dot(OURS, "sparsity = 80% (SOTA)")], loc="upper left", fontsize=10)
+    fig.savefig(HERE / "inference_time.png")
     plt.close(fig)
 
 
@@ -234,5 +218,5 @@ if __name__ == "__main__":
     results()
     layers()
     pruning()
-    tradeoff()
-    print("wrote results.png, layers.png, pruning.png, tradeoff.png in", HERE)
+    inference_time()
+    print("wrote results.png, layers.png, pruning.png, inference_time.png in", HERE)

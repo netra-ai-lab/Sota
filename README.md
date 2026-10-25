@@ -89,10 +89,10 @@ SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer a
 **What pruning removes.** Each encoder layer keeps only the attention heads and FFN units that the L0 gates leave open, so every layer has its own width. The model dimension, the CNN front end and the CTC head stay intact.
 
 <p align="center">
-  <img src="assets/tradeoff.png" width="1000" alt="Parameters, speed and test error of each 80%-sparse SOTA model next to its fine-tuned teacher" />
+  <img src="assets/inference_time.png" width="560" alt="Inference time for 60 s of audio at 0% and 80% encoder sparsity, for the base and large models" />
 </p>
 
-<p><em>Figure 2: What 80% encoder sparsity buys and costs. Each SOTA model (orange) sits next to its fine-tuned teacher (blue); the percentages are the change against that teacher. Pruning makes the models 4–5× smaller and 1.8–2.5× faster, with speed measured as real-time factor on one machine. On DDD both pruned models are also more accurate; on FLEURS-km and LibriSpeech they lose accuracy.</em></p>
+<p><em>Figure 2: Inference time before and after pruning, for one 60 s utterance (batch 1, bf16, median of 20 runs on one machine; `training/scripts/07_time_inference.py`). At 80% encoder sparsity sota-base runs 1.6× faster than its teacher and sota-large 2.2× faster. Over the batched test sets (the Speed column below) the speed-ups are 1.8× and 2.5×.</em></p>
 
 | Feature | Detail |
 | :--- | :--- |
