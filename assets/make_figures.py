@@ -2,8 +2,8 @@
 
     python assets/make_figures.py      # reads training/runs/eval/*.json and */stage2_prune_s80/pruned.json
 
-Writes assets/pruning.png (what is pruned; sparsity, speed and accuracy), assets/results.png (test error,
-two model sizes) and assets/layers.png (what pruning kept in each layer).
+Writes assets/pruning.png (the encoder before and after pruning), assets/tradeoff.png (speed against error),
+assets/results.png (test error, two model sizes) and assets/layers.png (what pruning kept in each layer).
 """
 
 import json
@@ -101,124 +101,121 @@ def _mean_rtf(name: str) -> float:
 
 
 def pruning() -> None:
-    """Figure 1: (a) what is pruned inside an encoder layer, (b) what it buys and costs."""
-    from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle
+    """Figure 1: the encoder before and after pruning, in the style of the DiariZen figure."""
+    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
-    ink, muted, meta, card, border = COLOR["foreground"], COLOR["muted"], COLOR["muted-2"], COLOR["card"], COLOR["border"]
-    white = CHART["figureBackground"]
-    fig = plt.figure(figsize=(16, 6.2))
-    gs = fig.add_gridspec(1, 2, width_ratios=[1.35, 1], wspace=0.36)
-    ax = fig.add_subplot(gs[0, 0])
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 66)
-    ax.axis("off")
-
-    def box(x, y, w, h, text="", fc=card, ec=border, fs=10.5, r=1.2):
-        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle=f"round,pad=0,rounding_size={r}", fc=fc, ec=ec, lw=1.2))
-        if text:
-            ax.text(x + w / 2, y + h / 2, text, ha="center", va="center", fontsize=fs, color=ink)
-
-    def arrow(x1, y1, x2, y2):
-        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2), arrowstyle="-|>", mutation_scale=11, color=ink, lw=1.2))
-
-    def pruned_cell(x, y, w, h):
-        ax.add_patch(Rectangle((x, y), w, h, fc=white, ec=meta, lw=0.8, ls=(0, (2, 1.5))))
-        ax.plot([x + 0.25 * w, x + 0.75 * w], [y + 0.25 * h, y + 0.75 * h], color=meta, lw=0.8)
-        ax.plot([x + 0.25 * w, x + 0.75 * w], [y + 0.75 * h, y + 0.25 * h], color=meta, lw=0.8)
-
-    def unit_row(x0, y0, n, kept, w, h, gap):
-        keep = set(np.random.default_rng(3).choice(n, size=kept, replace=False).tolist())
-        for i in range(n):
-            x = x0 + i * (w + gap)
-            if i in keep:
-                ax.add_patch(Rectangle((x, y0), w, h, fc=OURS, ec="none"))
-            else:
-                pruned_cell(x, y0, w, h)
-            ax.add_patch(Circle((x + w / 2, y0 + h + 1.6), min(0.55, 0.42 * (w + gap)), fc=OURS if i in keep else white, ec=ink, lw=0.7))
-        return x0 + n * (w + gap) - gap
-
-    # the encoder at a glance
-    ax.text(1, 65.5, "(a) What is pruned", fontsize=13, color=ink, weight="bold", va="top")
-    box(2, 5, 22, 7, "CNN feature extractor\nkept, frozen", fs=9.5)
-    for k in (2, 1):
-        box(2 + k * 0.8, 19.4 + k * 0.8, 22, 22, fc=white)
-    box(2, 19.4, 22, 22, "Transformer layer\n× 48 (large)\n× 24 (base)\n\nheads and FFN\nunits gated,\nthen removed", fc=white, ec=ink, fs=9.5)
-    box(2, 50, 22, 7, "CTC head, 9,812 chars\nkept", fs=9.5)
-    arrow(13, 12, 13, 19.2)
-    arrow(13, 43.2, 13, 50)
-    ax.plot([24.8, 31], [43, 55.5], color=meta, lw=0.9, ls=":")
-    ax.plot([24, 31], [19.4, 1.5], color=meta, lw=0.9, ls=":")
-
-    # one layer, with the real counts of sota-large layer 12
+    ink, white = COLOR["foreground"], CHART["figureBackground"]
+    kinds = {"cnn": (COLOR["accent-maroon"], COLOR["tint-maroon"]), "mha": (OURS, COLOR["tint-orange"]),
+             "ffn": (COLOR["accent-yellow"], COLOR["tint-yellow"])}
     p = json.loads((RUNS / "large" / "stage2_prune_s80" / "pruned.json").read_text())
-    layer = 12
-    heads_kept, ffn_kept = p["num_heads"][layer - 1], p["ffn_dims"][layer - 1]
-    box(31, 1.5, 68, 54, fc=white, ec=ink, r=1.6)
-    ax.text(33, 53.2, f"One encoder layer (sota-large, layer {layer})", fontsize=10.5, color=muted, va="top")
+    cells, cw, ch, gap = 4, 3.0, 2.6, 0.75
+    shown = (12, 40)  # one wide layer, and one of the deep layers that lost every head
 
-    box(34, 33.5, 62, 15)
-    ax.text(35.5, 46.6, "Multi-head self-attention", fontsize=10.5, color=ink, va="top", weight="bold")
-    end = unit_row(36, 36, 16, heads_kept, 2.1, 4.2, 0.7)
-    ax.text(end + 1.2, 38.1, f"{heads_kept} of 16\nheads kept", fontsize=9.5, color=ink, va="center")
+    def kept(n, full):
+        return 0 if n == 0 else max(1, round(cells * n / full))
 
-    box(34, 9, 62, 20)
-    ax.text(35.5, 27.1, "Feed-forward network", fontsize=10.5, color=ink, va="top", weight="bold")
-    ax.text(35.5, 24.6, "1280 → 5,120 units → 1280;  one cell = 160 units", fontsize=8.5, color=muted, va="top")
-    cells = 32
-    end = unit_row(36, 12.5, cells, round(cells * ffn_kept / 5120), 1.05, 4.6, 0.3)
-    ax.text(end + 1.2, 14.8, f"{ffn_kept:,} of\n5,120 units\nkept", fontsize=9.5, color=ink, va="center")
-    arrow(64.5, 29.2, 64.5, 33.3)
-    ax.text(65.3, 31.2, "LayerNorm + residual", fontsize=8, color=meta, va="center")
+    columns = [("cnn", cells)]
+    for layer in shown:
+        columns += [("mha", kept(p["num_heads"][layer - 1], 16)), ("ffn", kept(p["ffn_dims"][layer - 1], 5120))]
 
-    ly = 7.0
-    ax.add_patch(Rectangle((35, ly - 1), 2, 2.4, fc=OURS, ec="none"))
-    ax.text(37.8, ly + 0.2, "kept", fontsize=9, va="center", color=ink)
-    pruned_cell(43, ly - 1, 2, 2.4)
-    ax.text(45.8, ly + 0.2, "pruned (removed at the cut)", fontsize=9, va="center", color=ink)
-    ax.add_patch(Circle((36, ly - 3.3), 0.55, fc=white, ec=ink, lw=0.7))
-    ax.text(37.8, ly - 3.3, "Hard Concrete gate z ∈ [0, 1], one per head or unit", fontsize=9, va="center", color=ink)
+    fig, ax = plt.subplots(figsize=(13, 2.8))
+    ax.set_xlim(0, 118)
+    ax.set_ylim(3, 26)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    col_h = cells * ch + (cells - 1) * gap
+    y0 = 10.5
 
-    # (b) the trade-off: each metric of the pruned model relative to its fine-tuned teacher (1x)
-    bx = fig.add_subplot(gs[0, 1])
-    rows = [("Parameters", lambda e: e["params_total"] / 1e6, "{:.0f}M"),
-            ("Compute (GMAC/s)", lambda e: e["gmacs_per_audio_second"], "{:.1f}"),
-            ("Inference time (RTF)", None, "{:.4f}"),
-            ("DDD CER (%)", lambda e: 100 * e["results"]["ddd_test"]["cer"], "{:.2f}"),
-            ("FLEURS-km CER (%)", lambda e: 100 * e["results"]["fleurs_km_test"]["cer"], "{:.2f}"),
-            ("LibriSpeech WER (%)", lambda e: 100 * e["results"]["libri_test_clean"]["wer"], "{:.2f}")]
-    styles = {"large": dict(fc=OURS, label="sota-large vs fine-tuned 1B", dy=-0.17),
-              "base": dict(fc=white, label="sota-base vs fine-tuned 300M", dy=0.17)}
-    for size, st in styles.items():
-        t, o = _eval(f"{size}_teacher"), _eval(size)
-        for r, (name, get, fmt) in enumerate(rows):
-            tv, ov = (_mean_rtf(f"{size}_teacher"), _mean_rtf(size)) if get is None else (get(t), get(o))
-            ratio, y = ov / tv, r + st["dy"]
-            bx.plot([1, ratio], [y, y], color=meta, lw=1.3, zorder=2)
-            bx.scatter([1], [y], s=34, color=BASELINES[0], zorder=3)
-            bx.scatter([ratio], [y], s=78, facecolor=st["fc"], edgecolor=OURS, linewidth=1.6, zorder=4)
-            text = f"{fmt.format(tv)} → {fmt.format(ov)}" if get is not None else f"{tv / ov:.1f}× faster"
-            side = -1 if ratio < 1 else 1
-            bx.text(ratio * (0.86 if side < 0 else 1.14), y, text, ha="right" if side < 0 else "left", va="center",
-                    fontsize=8.5, color=ink)
-    bx.axvline(1, color=BASELINES[0], lw=1, ls="--", zorder=1)
-    bx.set_xscale("log")
-    bx.set_xlim(0.07, 4)
-    bx.set_xticks([0.1, 0.25, 0.5, 1, 2], ["0.1×", "0.25×", "0.5×", "1×", "2×"])
-    bx.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
-    bx.set_yticks(range(len(rows)), [r[0] for r in rows])
-    bx.set_ylim(len(rows) - 0.4, -0.75)
-    bx.grid(axis="x", color=border, ls="--", lw=0.7)
-    bx.grid(axis="y", visible=False)
-    bx.tick_params(axis="y", length=0)
-    bx.set_xlabel("Pruned model relative to its teacher (left of 1× is smaller, faster or more accurate)")
-    sparsity = 100 * (1 - _eval("large")["params_encoder"] / _eval("large_teacher")["params_encoder"])
-    bx.set_title(f"(b) {sparsity:.0f}% sparsity: what it buys and costs", loc="left", fontsize=13, weight="bold")
-    bx.legend(handles=[legend_dot(OURS, styles["large"]["label"]),
-                       matplotlib.lines.Line2D([], [], marker="o", ls="None", markersize=9, markerfacecolor=white,
-                                               markeredgecolor=OURS, markeredgewidth=1.6, label=styles["base"]["label"]),
-                       legend_dot(BASELINES[0], "teacher (1×)")],
-              loc="lower left", fontsize=8.5)
-    fig.savefig(HERE / "pruning.png")
+    def cell(x, y, kind, on):
+        solid, tint = kinds[kind]
+        if on:
+            ax.add_patch(Rectangle((x, y), cw, ch, fc=solid, ec=ink, lw=0.6))
+        else:
+            ax.add_patch(Rectangle((x, y), cw, ch, fc=tint, ec=solid, lw=1.0, ls=(0, (2.2, 1.6))))
+
+    def dots(x):
+        for dy in (-1.2, 0, 1.2):
+            ax.plot(x, y0 + col_h / 2 + dy, "o", ms=2.2, color=ink)
+
+    def model(x0, pruned, title):
+        x, groups = x0 + 2.2, []
+        for i, (kind, n) in enumerate(columns):
+            if i in (1, 3):
+                dots(x + 0.6)
+                x += 2.4
+                groups.append(x)
+            if pruned and n == 0:
+                continue
+            if pruned:  # the survivors, packed into a shorter column
+                top = y0 + col_h / 2 + (n * ch + (n - 1) * gap) / 2
+                for j in range(n):
+                    cell(x, top - (j + 1) * ch - j * gap, kind, True)
+            else:
+                on = set(np.random.default_rng(len(groups) * 7 + i).choice(cells, size=n, replace=False).tolist())
+                for j in range(cells):
+                    cell(x, y0 + j * (ch + gap), kind, j in on)
+            x += cw + 1.0
+        dots(x + 0.6)
+        x += 2.6
+        ax.add_patch(FancyBboxPatch((x0, y0 - 4.0), x - x0, col_h + 6.2, boxstyle="round,pad=0,rounding_size=1.6",
+                                    fc="none", ec=ink, lw=1.3, ls=(0, (5, 3)) if pruned else "-"))
+        ax.text((x0 + x) / 2, y0 - 5.4, title, ha="center", va="top", fontsize=12, color=ink)
+        if not pruned:
+            for gx, layer in zip(groups, shown):
+                ax.text(gx + cw + 0.5, y0 - 0.7, f"layer {layer}", ha="center", va="top", fontsize=8.5,
+                        color=COLOR["muted"])
+        return x
+
+    left = model(1, False, "Fine-tuned omniASR CTC-1B · 975M")
+    ax.add_patch(FancyArrowPatch((left + 1.5, y0 + col_h / 2), (left + 21.5, y0 + col_h / 2), arrowstyle="-|>",
+                                 mutation_scale=16, color=ink, lw=1.4))
+    ax.text(left + 11.5, y0 + col_h / 2 + 1.2, "Pruning", ha="center", va="bottom", fontsize=12, color=ink)
+    ax.text(left + 11.5, y0 + col_h / 2 - 1.2, f"{100 * p['sparsity']:.0f}% of encoder\nweights removed",
+            ha="center", va="top", fontsize=9.5, color=COLOR["muted"])
+    right = model(left + 23, True, f"sota-large · {p['params_total_after'] / 1e6:.0f}M")
+
+    lx = right + 4.5
+    for k, (kind, label) in enumerate([("cnn", "CNN"), ("mha", "MHA heads"), ("ffn", "FFN units")]):
+        y = y0 + col_h - 1.2 - k * 4.4
+        cell(lx, y, kind, True)
+        ax.text(lx + cw + 1.2, y + ch / 2, label, va="center", fontsize=11, color=ink)
+    cell(lx, y0 - 1.6, "mha", False)
+    ax.text(lx + cw + 1.2, y0 - 1.6 + ch / 2, "pruned", va="center", fontsize=11, color=ink)
+    fig.savefig(HERE / "pruning.png", bbox_inches="tight", pad_inches=0.15)
+    plt.close(fig)
+
+
+def tradeoff() -> None:
+    """Figure 2: speed against error for each teacher and its 80%-sparse model."""
+    pairs = [("large_teacher", "large", "Fine-tuned 1B"), ("base_teacher", "base", "Fine-tuned 300M")]
+    ref = _mean_rtf("large_teacher")
+    fig, axes = plt.subplots(1, 3, figsize=(14, 4.4))
+    for ax, (key, title) in zip(axes, TESTS):
+        metric = "wer" if key.startswith("libri") else "cer"
+        for t_name, o_name, t_label in pairs:
+            pts = []
+            for name, label, color in ((t_name, t_label, BASELINES[0]), (o_name, f"sota-{o_name}", OURS)):
+                e = _eval(name)
+                pts.append((ref / _mean_rtf(name), 100 * e["results"][key][metric], label, e["params_total"] / 1e6, color))
+            (tx, ty, *_), (ox, oy, *_) = pts
+            ax.annotate("", (ox, oy), (tx, ty), zorder=3,
+                        arrowprops=dict(arrowstyle="-|>", color=COLOR["muted-2"], lw=1.1, shrinkA=7, shrinkB=7))
+            for i, (x, y, label, n, color) in enumerate(pts):
+                ax.scatter([x], [y], s=70, color=color, zorder=4, edgecolor="white", linewidth=1)
+                # the 1B below its point, the 300M to its left, SOTA models to the right
+                below = i == 0 and t_name == "large_teacher"
+                ax.annotate(f"{label}\n{n:.0f}M", (x, y), xytext=(0, -11) if below else (-9 if i == 0 else 9, 0),
+                            textcoords="offset points", ha="center" if below else ("right" if i == 0 else "left"),
+                            va="top" if below else "center", fontsize=8.5, color=COLOR["foreground"])
+        ax.set_title(title.replace("\n", " "), loc="left", fontsize=12)
+        ax.set_xlabel("Speed-up over the fine-tuned 1B (×)")
+        ax.set_xlim(-0.2, 5.6)
+        ax.set_xticks(range(1, 6))
+        ax.set_ylim(0, ax.get_ylim()[1] * 1.12)
+    axes[0].set_ylabel("Error rate (%), lower is better")
+    axes[0].legend(handles=[legend_dot(BASELINES[0], "fine-tuned teacher"), legend_dot(OURS, "80%-sparse SOTA model")],
+                   loc="lower right", fontsize=9)
+    fig.savefig(HERE / "tradeoff.png")
     plt.close(fig)
 
 
@@ -229,4 +226,5 @@ if __name__ == "__main__":
     results()
     layers()
     pruning()
-    print("wrote results.png, layers.png, pruning.png in", HERE)
+    tradeoff()
+    print("wrote results.png, layers.png, pruning.png, tradeoff.png in", HERE)

@@ -75,15 +75,10 @@ SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer a
 ## 3. Model Architecture
 
 <p align="center">
-  <img src="assets/pruning.png" width="1000" alt="Diagram of the heads and FFN units pruned in an encoder layer, and the size, speed and accuracy of each pruned model relative to its teacher" />
+  <img src="assets/pruning.png" width="1000" alt="Encoder of the fine-tuned omniASR CTC-1B before pruning, and the smaller sota-large after: CNN blocks kept, attention heads and FFN units removed" />
 </p>
 
-<p><em>Figure 1: (a) Pruning removes whole attention heads and FFN units, chosen by one Hard Concrete gate each. The layer shown is layer 12 of sota-large, which keeps 8 of 16 heads and 3,355 of 5,120 FFN units. (b) What 80% encoder sparsity buys and costs against the fine-tuned teacher:
-- 4–5× fewer parameters, 3–4× less compute and 1.8–2.5× faster inference;
-- better DDD accuracy;
-- higher FLEURS-km and LibriSpeech error.
-
-Training runs in five steps: fine-tune, prune, cut, distil with the mask frozen, and recover with CTC and logit distillation ([docs/DESIGN.md](docs/DESIGN.md)).</em></p>
+<p><em>Figure 1: Structured pruning removes whole attention heads (MHA) and FFN units from every transformer layer, chosen by one Hard Concrete gate each; the CNN front end is kept. Each cell is a quarter of a layer's heads or FFN units: layer 12 of sota-large keeps 8 of 16 heads and 3,355 of 5,120 FFN units, and layer 40 keeps no heads and 228 FFN units. Training runs in five steps: fine-tune, prune, cut, distil with the mask frozen, and recover with CTC and logit distillation ([docs/DESIGN.md](docs/DESIGN.md)).</em></p>
 
 **The base model.** A wav2vec2-style encoder:
 - a 7-layer CNN feature extractor (20 ms frames);
@@ -94,10 +89,10 @@ Training runs in five steps: fine-tune, prune, cut, distil with the mask frozen,
 **What pruning removes.** Each encoder layer keeps only the attention heads and FFN units that the L0 gates leave open, so every layer has its own width. The model dimension, the CNN front end and the CTC head stay intact.
 
 <p align="center">
-  <img src="assets/layers.png" width="1000" alt="FFN units and attention heads kept per encoder layer" />
+  <img src="assets/tradeoff.png" width="1000" alt="Error rate against speed-up for each fine-tuned teacher and its 80%-sparse SOTA model on DDD, FLEURS-km and LibriSpeech" />
 </p>
 
-<p><em>Figure 2: What pruning kept in each layer. Width collects at the layers distilled to the teacher (orange), and the deepest layers lose all their attention heads.</em></p>
+<p><em>Figure 2: What 80% encoder sparsity buys and costs. Each arrow runs from a fine-tuned teacher to its pruned model; speed is relative to the fine-tuned 1B, measured as real-time factor on one machine. Pruning makes the models 4–5× smaller and 1.8–2.5× faster than their teachers. On DDD both pruned models are also more accurate; on FLEURS-km and LibriSpeech they lose accuracy. sota-large is about as fast as the fine-tuned 300M, and more accurate on both Khmer sets.</em></p>
 
 | Feature | Detail |
 | :--- | :--- |
