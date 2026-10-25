@@ -1,6 +1,7 @@
-<p align="center">
-  <img src="assets/banner.svg" width="100%" alt="Netra Lab · SOTA" />
-</p>
+<div align="center">
+  <img src="assets/symbol.svg" height="72" alt="Netra Lab" style="vertical-align: middle; margin-right: 24px;" />
+  <img src="assets/wordmark-latin.svg" height="56" alt="Netra" style="vertical-align: middle;" />
+</div>
 
 <hr>
 
@@ -29,11 +30,11 @@
 </p>
 
 <p align="center">
-  <img src="assets/results.png" width="1000" alt="Test error of the stock, fine-tuned and pruned models at both sizes on five test sets" />
+  <img src="assets/results.png" width="1000" alt="Test error of the stock, fine-tuned and pruned models at both sizes on DDD, FLEURS-km and LibriSpeech" />
 </p>
 
 <p align="center">
-  <em>Test error for each size: the stock Omnilingual model, our fine-tuned teacher and the pruned SOTA model. Lower is better. On Khmer conversational speech (DDD-Test), the pruned models beat both larger models. English keeps 1.5–2× the teacher's error.</em>
+  <em>Test error for each size: the stock Omnilingual model, our fine-tuned teacher and the pruned SOTA model. Lower is better. On DDD, the pruned models beat both larger models; on LibriSpeech they keep 1.7–1.9× the teacher's error.</em>
 </p>
 
 ## 1. Abstract
@@ -43,7 +44,7 @@ This repository presents SOTA, a pair of **73M- and 204M-parameter** CTC speech 
 2. Hard Concrete L0 gates remove attention heads and FFN units while the model is distilled to that fine-tuned teacher.
 3. The pruned model recovers with CTC plus distillation of the teacher's output distribution.
 
-On DDD-Test, the 204M model reaches **1.77% CER**, against 2.47% for its 975M teacher, at a quarter of the compute (12.3 against 50.3 GMAC per second of audio). The 73M model reaches **2.60% CER**, below its 325M teacher's 3.68%, at 5.8 GMAC/s.
+On the DDD test set, the 204M model reaches **1.77% CER**, against 2.47% for its 975M teacher, at a quarter of the compute (12.3 against 50.3 GMAC per second of audio). The 73M model reaches **2.60% CER**, below its 325M teacher's 3.68%, at 5.8 GMAC/s.
 
 These models are the ASR half of a planned joint ASR + speaker-diarization model, sized like DiariZen's pruned Base-s80 and Large-s80.
 
@@ -63,7 +64,7 @@ SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer a
 
 ### Preprocessing
 
-1. **Held-out sets.** DDD-Test, a DDD dev pool and an exclude list are removed from DDD training at the shard-row level.
+1. **Held-out sets.** The DDD test set, a DDD dev pool and an exclude list are removed from DDD training at the shard-row level.
 2. **Duration filter.** Utterances shorter than 1 s or longer than 25 s are dropped.
 3. **Resampling.** Audio is resampled to 16 kHz mono, which affects some 48 kHz DDD rows.
 4. **Text normalisation.**
@@ -74,10 +75,15 @@ SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer a
 ## 3. Model Architecture
 
 <p align="center">
-  <img src="assets/pipeline.svg" width="70%" alt="SOTA training pipeline" />
+  <img src="assets/pruning.png" width="1000" alt="Diagram of the heads and FFN units pruned in an encoder layer, and the size, speed and accuracy of each pruned model relative to its teacher" />
 </p>
 
-<p><em>Figure 1: The training chain. Stage 1's fine-tuned model is the starting point for pruning and the frozen teacher for every later stage. Only the last box is released.</em></p>
+<p><em>Figure 1: (a) Pruning removes whole attention heads and FFN units, chosen by one Hard Concrete gate each. The layer shown is layer 12 of sota-large, which keeps 8 of 16 heads and 3,355 of 5,120 FFN units. (b) What 80% encoder sparsity buys and costs against the fine-tuned teacher:
+- 4–5× fewer parameters, 3–4× less compute and 1.8–2.5× faster inference;
+- better DDD accuracy;
+- higher FLEURS-km and LibriSpeech error.
+
+Training runs in five steps: fine-tune, prune, cut, distil with the mask frozen, and recover with CTC and logit distillation ([docs/DESIGN.md](docs/DESIGN.md)).</em></p>
 
 **The base model.** A wav2vec2-style encoder:
 - a 7-layer CNN feature extractor (20 ms frames);
@@ -112,26 +118,26 @@ SOTA was trained on about **1,537 hours** of speech, mixed 50/50 between Khmer a
 
 ## 4. Evaluation
 
-| Model | Params | DDD-Test (km, CER) | FLEURS-km (CER) | FLEURS-en (WER) | test-clean (WER) | test-other (WER) |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| omniASR CTC-1B (stock) | 975M | 5.95 | 11.26 | 12.38 | 4.40 | 8.87 |
-| Fine-tuned 1B (teacher) | 975M | 2.47 | 9.44 | 11.94 | 3.61 | 8.21 |
-| **sota-large (ours)** | **204M** | **1.77** | **11.40** | **19.25** | **6.07** | **16.73** |
-| omniASR CTC-300M (stock) | 325M | 9.65 | 16.26 | – | 6.53 | 14.45 |
-| Fine-tuned 300M (teacher) | 325M | 3.68 | 12.64 | 19.51 | 5.89 | 13.86 |
-| **sota-base (ours)** | **73M** | **2.60** | **16.39** | **30.24** | **11.15** | **27.36** |
+| Model | Params | Speed | DDD (CER) | FLEURS-km (CER) | LibriSpeech (WER) |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| omniASR CTC-1B (stock) | 975M | 1.0× | 5.95 | 11.26 | 4.40 |
+| Fine-tuned 1B (teacher) | 975M | 1.0× | 2.47 | 9.44 | 3.61 |
+| **sota-large (ours)** | **204M** | **2.5×** | **1.77** | **11.40** | **6.07** |
+| omniASR CTC-300M (stock) | 325M | 1.0× | 9.65 | 16.26 | 6.53 |
+| Fine-tuned 300M (teacher) | 325M | 1.0× | 3.68 | 12.64 | 5.89 |
+| **sota-base (ours)** | **73M** | **1.8×** | **2.60** | **16.39** | **11.15** |
 
-**How it was scored:** greedy decoding, error rates in %, on the full test sets:
+- **Scoring.** Greedy decoding, error rates in %, on the full test sets:
 
-| Test set | Utterances |
-| :--- | ---: |
-| DDD-Test | 1,993 |
-| FLEURS-km | 771 |
-| FLEURS-en | 647 |
-| LibriSpeech test-clean | 2,620 |
-| LibriSpeech test-other | 2,939 |
+  | Test set | Utterances |
+  | :--- | ---: |
+  | DDD | 1,993 |
+  | FLEURS-km | 771 |
+  | LibriSpeech test-clean | 2,620 |
 
-FLEURS train is in the training mix, so both FLEURS test sets are in-domain. The ablations behind the recipe are in [docs/RESULTS.md](docs/RESULTS.md): pruning without fine-tuning first, and Stage 3 without distillation or with a shorter schedule.
+- **Speed.** Inference speed relative to the unpruned model of the same size, measured as the real-time factor on one machine.
+- **In-domain.** FLEURS-km train is in the training mix, so its test set is in-domain.
+- **More results.** [docs/RESULTS.md](docs/RESULTS.md) adds FLEURS-en and LibriSpeech test-other, plus the ablations behind the recipe: pruning without fine-tuning first, and Stage 3 without distillation or with a shorter schedule.
 
 ## 5. Install
 

@@ -51,7 +51,7 @@ All locations are environment variables. `training/local.env` (git-ignored) sets
 data/dataset/train.tsv                 DDD training index: shard_path, row_index, transcript, duration, speaker_id, source
 data/dataset/train/*.parquet           DDD shards: columns audio.bytes, transcript
 data/fleurs_train/*.parquet            FLEURS-km train shards, same schema
-manifests/val_indomain.jsonl           DDD-Test (held out, reporting only)
+manifests/val_indomain.jsonl           DDD test set (held out, reporting only)
 manifests/train_combined.json          {"exclude_keys": [...]} rows never trained on
 manifests/test_fleurs_test.jsonl       FLEURS-km test
 manifests/dev_fleurs.jsonl             FLEURS-km validation

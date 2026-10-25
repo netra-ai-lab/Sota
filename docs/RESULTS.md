@@ -4,7 +4,7 @@ Greedy CTC decoding with no language model. CER is used for Khmer and WER for En
 
 ## 1. Test sets
 
-| Model | Params | GMAC/s | DDD-Test | FLEURS-km | FLEURS-en | test-clean | test-other |
+| Model | Params | GMAC/s | DDD | FLEURS-km | FLEURS-en | test-clean | test-other |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | omniASR CTC-1B (stock) | 975M | 50.3 | 5.95 | 11.26 | 12.38 | 4.40 | 8.87 |
 | Fine-tuned 1B (teacher) | 975M | 50.3 | 2.47 | 9.44 | 11.94 | 3.61 | 8.21 |
@@ -17,7 +17,7 @@ Greedy CTC decoding with no language model. CER is used for Khmer and WER for En
 
 | Set | Utterances | Notes |
 | :--- | ---: | :--- |
-| DDD-Test | 1,993 | held out from DDD training |
+| DDD | 1,993 | held out from DDD training |
 | FLEURS-km test | 771 | |
 | FLEURS-en test | 647 | |
 | LibriSpeech test-clean | 2,620 | |
@@ -27,7 +27,7 @@ FLEURS train is in the training mix, so the two FLEURS test sets are in-domain. 
 
 ## 2. Ablations on the 1B
 
-| Run | What changes | DDD-Test | FLEURS-km | FLEURS-en | test-clean | test-other |
+| Run | What changes | DDD | FLEURS-km | FLEURS-en | test-clean | test-other |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: |
 | A | prune the stock 1B, no Stage 1, no FLEURS | 2.20 | 16.36 | 28.07 | 6.56 | 18.26 |
 | B1 | fine-tune first, Stage 3 CTC only (8k) | 2.14 | 12.51 | 21.16 | 7.07 | 18.51 |
